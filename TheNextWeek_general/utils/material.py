@@ -2,9 +2,10 @@ from abc import ABC, abstractmethod
 from typing import Tuple, Optional
 import numpy as np  # type: ignore
 from utils.ray import Ray
-from utils.vec3 import Vec3, Color
+from utils.vec3 import Vec3, Color, Point3
 from utils.hittable import HitRecord
 from utils.rtweekend import random_float
+from utils.texture import Texture
 
 
 class Material(ABC):
@@ -13,16 +14,21 @@ class Material(ABC):
             -> Optional[Tuple[Ray, Color]]:
         return NotImplemented
 
+    def emitted(self, u: float, v: float, p: Point3) -> Color:
+        return Color(0, 0, 0)
+
 
 class Lambertian(Material):
-    def __init__(self, a: Color) -> None:
+    def __init__(self, a: Texture) -> None:
         self.albedo = a
 
     def scatter(self, r_in: Ray, rec: HitRecord) \
             -> Optional[Tuple[Ray, Color]]:
+        if not rec.front_face:
+            return None
         scatter_direction: Vec3 = rec.normal + Vec3.random_unit_vector()
         scattered = Ray(rec.p, scatter_direction, r_in.time())
-        attenuation = self.albedo
+        attenuation = self.albedo.value(rec.u, rec.v, rec.p)
         return scattered, attenuation
 
 
@@ -89,3 +95,26 @@ class Dielectric(Material):
         r0 = (1 - ref_idx) / (1 + ref_idx)
         r0 **= 2
         return r0 + (1 - r0) * ((1 - cosine) ** 5)
+
+
+class DiffuseLight(Material):
+    def __init__(self, emit: Texture):
+        self.emit = emit
+
+    def scatter(self, r_in: Ray, rec: HitRecord) \
+            -> Optional[Tuple[Ray, Color]]:
+        return None
+
+    def emitted(self, u: float, v: float, p: Point3) -> Color:
+        return self.emit.value(u, v, p)
+
+
+class Isotropic(Material):
+    def __init__(self, a: Texture) -> None:
+        self.albedo = a
+
+    def scatter(self, r_in: Ray, rec: HitRecord) \
+            -> Optional[Tuple[Ray, Color]]:
+        scattered = Ray(rec.p, Vec3.random_in_unit_sphere(), r_in.time())
+        attenuation = self.albedo.value(rec.u, rec.v, rec.p)
+        return scattered, attenuation

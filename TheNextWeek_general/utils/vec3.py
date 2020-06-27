@@ -1,12 +1,13 @@
 from __future__ import annotations
 import numpy as np  # type: ignore
 from typing import Union
+from copy import deepcopy
 from utils.rtweekend import random_float, random_float_list
 
 
 class Vec3:
     def __init__(self, e0: float = 0, e1: float = 0, e2: float = 0) -> None:
-        self.e: np.ndarray = np.array([e0, e1, e2], dtype=np.float32)
+        self.e: np.ndarray = np.array([e0, e1, e2], dtype=np.float64)
 
     def x(self) -> float:
         return self.e[0]
@@ -20,8 +21,14 @@ class Vec3:
     def __getitem__(self, idx: int) -> float:
         return self.e[idx]
 
+    def __setitem__(self, idx: int, value: float) -> None:
+        self.e[idx] = value
+
     def __str__(self) -> str:
         return f"{self.e[0]} {self.e[1]} {self.e[2]}"
+
+    def copy(self) -> Vec3:
+        return deepcopy(self)
 
     def length_squared(self) -> float:
         return self.e @ self.e
